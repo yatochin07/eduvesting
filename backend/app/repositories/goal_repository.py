@@ -1,0 +1,7 @@
+from app.models.goal import Goal
+from app.repositories.base_repository import BaseRepository
+
+
+class GoalRepository(BaseRepository[Goal]):
+    def __init__(self, db):
+        super().__init__(Goal, db)
