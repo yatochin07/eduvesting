@@ -6,7 +6,7 @@ semua pertukaran token terjadi di backend (lebih aman, client secret
 tidak pernah terekspos ke browser).
 """
 import httpx
-
+from fastapi import HTTPException
 from app.core.config import settings
 from app.utils.logger import get_logger
 
@@ -19,6 +19,7 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 class GoogleOAuthService:
     async def exchange_code_for_profile(self, code: str) -> dict:
         async with httpx.AsyncClient(timeout=10) as client:
+            # 1. Minta Token ke Google
             token_resp = await client.post(
                 GOOGLE_TOKEN_URL,
                 data={
@@ -29,14 +30,31 @@ class GoogleOAuthService:
                     "grant_type": "authorization_code",
                 },
             )
-            token_resp.raise_for_status()
+
+            # --- SISTEM RADAR ERROR BARU ---
+            if token_resp.status_code != 200:
+                # Ambil teks alasan asli dari Google
+                error_detail = token_resp.text
+                logger.error(f"GOOGLE MENOLAK: {error_detail}")
+                
+                # Lempar error 400 ke frontend agar langsung tampil di layar!
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Ditolak Google: {error_detail}"
+                )
+            # -------------------------------
+
             token_data = token_resp.json()
 
+            # 2. Minta Data Profil User
             userinfo_resp = await client.get(
                 GOOGLE_USERINFO_URL,
                 headers={"Authorization": f"Bearer {token_data['access_token']}"},
             )
-            userinfo_resp.raise_for_status()
+            
+            if userinfo_resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Gagal mengambil profil user dari Google.")
+                
             profile = userinfo_resp.json()
 
         return {

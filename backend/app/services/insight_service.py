@@ -1,11 +1,10 @@
 """
-InsightService: mengumpulkan data dari modul lain (portfolio, transaksi,
-goals, allocation) menjadi satu konteks finansial, mengirim ke Groq AI,
-lalu menyimpan hasilnya sebagai histori insight.
+InsightService: mengumpulkan data dari modul lain menjadi satu konteks
+finansial, mengirim ke Groq AI, lalu menyimpan hasilnya sebagai histori.
 """
 import uuid
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.allocation_repository import AllocationRepository
 from app.repositories.goal_repository import GoalRepository
@@ -16,7 +15,7 @@ from app.services.ai.groq_client import groq_client
 
 
 class InsightService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.insight_repo = InsightRepository(db)
         self.portfolio_repo = PortfolioRepository(db)
@@ -24,10 +23,10 @@ class InsightService:
         self.goal_repo = GoalRepository(db)
         self.allocation_repo = AllocationRepository(db)
 
-    def _build_financial_context(self, user_id: uuid.UUID) -> dict:
-        assets = self.portfolio_repo.get_all_by_user(user_id, limit=50)
-        transactions = self.transaction_repo.get_all_by_user(user_id, limit=50)
-        goals = self.goal_repo.get_all_by_user(user_id, limit=20)
+    async def _build_financial_context(self, user_id: uuid.UUID) -> dict:
+        assets = await self.portfolio_repo.get_all_by_user(user_id, limit=50)
+        transactions = await self.transaction_repo.get_all_by_user(user_id, limit=50)
+        goals = await self.goal_repo.get_all_by_user(user_id, limit=20)
 
         return {
             "portfolio": [
@@ -45,10 +44,10 @@ class InsightService:
         }
 
     async def generate_insight(self, user_id: uuid.UUID, insight_type: str = "general"):
-        context = self._build_financial_context(user_id)
+        context = await self._build_financial_context(user_id)
         ai_result = await groq_client.generate_insight(context)
 
-        return self.insight_repo.create(
+        return await self.insight_repo.create(
             {
                 "user_id": user_id,
                 "insight_type": insight_type,
@@ -58,5 +57,5 @@ class InsightService:
             }
         )
 
-    def list_history(self, user_id: uuid.UUID):
-        return self.insight_repo.get_all_by_user(user_id)
+    async def list_history(self, user_id: uuid.UUID):
+        return await self.insight_repo.get_all_by_user(user_id)

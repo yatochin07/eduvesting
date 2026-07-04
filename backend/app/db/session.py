@@ -1,28 +1,34 @@
-"""
-Setup SQLAlchemy engine & session factory.
-Menggunakan connection pool standar untuk Supabase Postgres (pgbouncer-aware).
-"""
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+# HAPUS import yang lama:
+# from sqlalchemy import create_engine
+# from sqlalchemy.orm import sessionmaker
 
+# GUNAKAN import async:
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core.config import settings
 
-# pool_pre_ping penting untuk koneksi ke Supabase yang bisa idle-timeout
-engine = create_engine(
-    settings.DATABASE_URL,
+# engine harus menggunakan create_async_engine
+engine = create_async_engine(
+    settings.DATABASE_URL, # PASTIKAN URL KAMU PAKAI "postgresql+asyncpg://"
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
     echo=settings.DEBUG,
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# SessionLocal harus menggunakan async_sessionmaker dan kelas AsyncSession
+AsyncSessionLocal = async_sessionmaker(
+    autocommit=False, 
+    autoflush=False, 
+    bind=engine,
+    class_=AsyncSession
+)
 
-
-def get_db():
-    """Dependency FastAPI: buka session per-request, selalu ditutup di finally."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Fungsi get_db wajib menggunakan "async def" dan "async with"
+async def get_db():
+    """Dependency FastAPI: buka session per-request secara asinkron."""
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            # Karena session bersifat asinkron, penutupannya pun harus di-await
+            await session.close()

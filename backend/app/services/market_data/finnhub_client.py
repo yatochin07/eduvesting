@@ -1,55 +1,34 @@
-"""
-Client untuk Finnhub API - dipakai khusus untuk saham US.
-Docs: https://finnhub.io/docs/api/quote
-"""
-from datetime import datetime, timezone
-
+"""Fetch data saham US dari Finnhub.io"""
 import httpx
+from ...core.config import get_settings
+from ...core.cache import market_data_cache
 
-from app.core.config import settings
-from app.utils.logger import get_logger
-
-logger = get_logger(__name__)
-
+settings = get_settings()
 BASE_URL = "https://finnhub.io/api/v1"
 
-
 class FinnhubClient:
-    def __init__(self):
-        self.api_key = settings.FINNHUB_API_KEY
-
     async def get_quote(self, symbol: str) -> dict:
-        """
-        Ambil kuotasi realtime saham US.
-        Response Finnhub: c=current, d=change, dp=percent change, pc=previous close
-        """
+        cache_key = f"finnhub:{symbol}"
+        if cache_key in market_data_cache:
+            return market_data_cache[cache_key]
+
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
+            res = await client.get(
                 f"{BASE_URL}/quote",
-                params={"symbol": symbol.upper(), "token": self.api_key},
+                # Pastikan token menggunakan huruf kapital sesuai config
+                params={"symbol": symbol, "token": settings.FINNHUB_API_KEY},
             )
-            resp.raise_for_status()
-            data = resp.json()
+            res.raise_for_status()
+            data = res.json()
 
-        if not data or data.get("c") in (None, 0):
-            raise ValueError(f"Simbol saham US tidak ditemukan atau data kosong: {symbol}")
-
-        return {
-            "symbol": symbol.upper(),
-            "price": data["c"],
-            "change": data.get("d"),
+        result = {
+            "symbol": symbol,
+            "price": data.get("c"),
             "change_percent": data.get("dp"),
             "source": "finnhub",
-            "fetched_at": datetime.now(timezone.utc),
         }
+        market_data_cache[cache_key] = result
+        return result
 
-    async def search_symbol(self, query: str) -> list[dict]:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"{BASE_URL}/search", params={"q": query, "token": self.api_key}
-            )
-            resp.raise_for_status()
-            return resp.json().get("result", [])
-
-
+# INI BAGIAN PALING PENTING: Membuat instance dari class
 finnhub_client = FinnhubClient()

@@ -1,39 +1,44 @@
-import { ButtonHTMLAttributes, forwardRef } from "react";
-import { cn } from "@/lib/utils";
+"use client";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "danger";
-  size?: "sm" | "md" | "lg";
+import React from "react";
+import { motion } from "framer-motion";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean;
+  loadingText?: string;
 }
 
-const variantClasses = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700",
-  secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
-  outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
-  danger: "bg-red-600 text-white hover:bg-red-700",
-};
+export default function Button({ children, loading, loadingText = "Memproses...", className = "", disabled, ...props }: ButtonProps) {
+  const isDisabled = loading || disabled;
 
-const sizeClasses = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
-  lg: "px-6 py-3 text-base",
-};
+  return (
+    <motion.button
+      {...(props as React.ComponentProps<typeof motion.button>)}
+      disabled={isDisabled}
+      whileHover={!isDisabled ? { scale: 1.02 } : {}}
+      whileTap={!isDisabled ? { scale: 0.97 } : {}}
+      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      className={`relative w-full overflow-hidden bg-gradient-to-r from-indigo-600 to-blue-500 text-white font-semibold py-3 rounded-xl transition-shadow duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/40 group ${className}`}
+    >
+      {/* Efek shine yang lewat saat hover */}
+      {!isDisabled && (
+        <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-12" />
+      )}
 
-// Komponen dasar yang dipakai ulang di seluruh halaman (dashboard, portfolio, dll)
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          "rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-          variantClasses[variant],
-          sizeClasses[size],
-          className
+      <span className="relative flex items-center justify-center gap-2">
+        {loading ? (
+          <>
+            <motion.span
+              className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 0.7, ease: "linear" }}
+            />
+            {loadingText}
+          </>
+        ) : (
+          children
         )}
-        {...props}
-      />
-    );
-  }
-);
-Button.displayName = "Button";
+      </span>
+    </motion.button>
+  );
+}

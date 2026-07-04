@@ -3,7 +3,19 @@ export function formatCurrency(value: number, currency: string = "IDR"): string 
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value ?? 0);
+}
+
+// Alias supaya konsisten dengan penamaan yang sudah dipakai di beberapa komponen
+export function formatRupiah(value: number): string {
+  return formatCurrency(value, "IDR");
+}
+
+export function formatNumber(value: number, maxDecimals: number = 2): string {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDecimals,
+  }).format(value ?? 0);
 }
 
 export function formatPercentage(value: number): string {

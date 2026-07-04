@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
+import Sidebar from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
 
 // Layout bersama untuk SEMUA halaman privat (Dashboard, Portfolio, dst).

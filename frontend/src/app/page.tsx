@@ -1,34 +1,60 @@
-import Link from "next/link";
-import { Footer } from "@/components/layout/Footer";
-import { Button } from "@/components/ui/Button";
+"use client";
 
-// Landing page publik. Template sederhana — silakan dikembangkan lebih jauh
-// (hero image, testimoni, dsb) sesuai kebutuhan branding.
-export default function LandingPage() {
+import SiteHeader from "@/components/layout/Header";
+import HeroSection from "@/components/sections/HeroSection";
+import DiscoverSection from "@/components/sections/DiscoverSection";
+import SiteFooter from "@/components/layout/Footer";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+
+function ThemeToggleButton() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex h-16 items-center justify-between px-6">
-        <span className="text-lg font-bold text-brand-600">EduVesting</span>
-        <div className="flex gap-3">
-          <Link href="/login"><Button variant="outline">Masuk</Button></Link>
-          <Link href="/register"><Button>Daftar</Button></Link>
-        </div>
-      </header>
+    <button
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="absolute top-24 right-6 w-11 h-11 rounded-xl bg-black/5 dark:bg-white/5 backdrop-blur-md border border-black/10 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 transition-colors z-20 shadow-lg"
+      title="Ubah Mode Tampilan"
+    >
+      {theme === "dark" ? (
+        <i className="fa-solid fa-moon text-lg"></i>
+      ) : (
+        <i className="fa-solid fa-sun text-lg text-amber-500"></i>
+      )}
+    </button>
+  );
+}
 
-      <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <h1 className="max-w-2xl text-4xl font-bold text-gray-900 md:text-5xl">
-          Kelola Investasi & Keuanganmu Sebagai Mahasiswa, Lebih Mudah
-        </h1>
-        <p className="mt-4 max-w-xl text-gray-600">
-          Pantau portofolio saham, kripto, emas, dan reksadana secara realtime,
-          catat transaksi harian, capai target finansial, dan dapatkan insight dari AI.
-        </p>
-        <Link href="/register" className="mt-8">
-          <Button size="lg">Mulai Sekarang</Button>
-        </Link>
+export default function HomePage() {
+  return (
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden text-slate-800 dark:text-slate-200">
+      {/* Background Animasi Cairan WebGL Neat sudah di-mount global di layout.tsx,
+          jangan dipanggil lagi di sini - kalau dobel, dua canvas WebGL akan
+          render bertumpuk dan bikin tampilan jadi berat/ramai kayak "over-zoom". */}
+
+      {/* Navbar Atas */}
+      <SiteHeader />
+      <div className="mt-5">
+        {/* Tombol tema */}
+        <ThemeToggleButton />
+      </div>
+      {/* Hero Section */}
+      <HeroSection />
+
+      {/* Bagian Fitur / Discover */}
+      <main
+        id="discover"
+        className="relative z-10 w-full max-w-7xl mx-auto px-6 py-20 space-y-32"
+      >
+        <DiscoverSection />
       </main>
 
-      <Footer />
+      {/* Footer Aplikasi */}
+      <SiteFooter />
     </div>
   );
 }

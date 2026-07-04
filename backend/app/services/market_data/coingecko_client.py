@@ -1,58 +1,26 @@
-"""
-Client untuk CoinGecko API - dipakai untuk kripto dan emas (via token
-tokenized gold seperti PAXG, atau proxy XAU jika tersedia).
-Docs: https://docs.coingecko.com/reference/simple-price
-"""
-from datetime import datetime, timezone
-
 import httpx
 
-from app.core.config import settings
-from app.utils.logger import get_logger
-
-logger = get_logger(__name__)
-
-
 class CoinGeckoClient:
-    def __init__(self):
-        self.base_url = settings.COINGECKO_BASE_URL
-        self.api_key = settings.COINGECKO_API_KEY
-
-    def _headers(self) -> dict:
-        headers = {"accept": "application/json"}
-        if self.api_key:
-            headers["x-cg-demo-api-key"] = self.api_key
-        return headers
-
-    async def get_quote(self, coin_id: str, vs_currency: str = "idr") -> dict:
+    async def get_quote(self, symbol: str, currency: str = "idr") -> dict:
         """
-        coin_id contoh: 'bitcoin', 'ethereum', 'pax-gold' (representasi emas tokenized).
+        Mengambil harga realtime dari CoinGecko.
+        Parameter 'symbol' mewakili 'coin_id' (misal: 'bitcoin', 'ethereum').
         """
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"{self.base_url}/simple/price",
-                params={
-                    "ids": coin_id,
-                    "vs_currencies": vs_currency,
-                    "include_24hr_change": "true",
-                },
-                headers=self._headers(),
-            )
-            resp.raise_for_status()
-            data = resp.json()
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={symbol}&vs_currencies={currency}&include_24hr_change=true"
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            
+            coin_data = data.get(symbol, {})
+            price = coin_data.get(currency, 0.0)
+            change_percent = coin_data.get(f"{currency}_24h_change", 0.0)
+            
+            return {
+                "price": float(price), 
+                "change_percent": float(change_percent)
+            }
 
-        if coin_id not in data:
-            raise ValueError(f"Coin id tidak ditemukan di CoinGecko: {coin_id}")
-
-        coin_data = data[coin_id]
-        return {
-            "symbol": coin_id,
-            "price": coin_data.get(vs_currency),
-            "change": None,
-            "change_percent": coin_data.get(f"{vs_currency}_24h_change"),
-            "source": "coingecko",
-            "fetched_at": datetime.now(timezone.utc),
-        }
-
-
+# Instance singleton yang akan dipanggil oleh MarketDataRouter
 coingecko_client = CoinGeckoClient()

@@ -1,12 +1,9 @@
-"""
-Konfigurasi Alembic. sqlalchemy.url diambil dari settings.DATABASE_URL
-(bukan dari alembic.ini) supaya satu sumber kebenaran koneksi DB dan
-kompatibel dengan .env local/production yang berbeda.
-"""
+import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config # Import untuk async
 
 from app.core.config import settings
 from app.db.base import Base  # noqa: F401  -> registrasi semua model
@@ -32,16 +29,31 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    connectable = engine_from_config(
+def do_run_migrations(connection):
+    """Fungsi helper synchronous untuk menjalankan migrasi."""
+    context.configure(connection=connection, target_metadata=target_metadata)
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_async_migrations() -> None:
+    """Fungsi asynchronous untuk membuat koneksi asyncpg."""
+    connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
-        with context.begin_transaction():
-            context.run_migrations()
+
+    async with connectable.connect() as connection:
+        # Jalankan eksekusi migrasi (yang bersifat sync) via run_sync
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Entrypoint mode online yang dibungkus dengan asyncio.run()"""
+    asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():

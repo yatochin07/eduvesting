@@ -2,8 +2,10 @@
 Endpoint Dashboard: mengagregasi ringkasan dari modul lain (portfolio,
 transaksi, goals) menjadi satu response untuk halaman overview.
 """
+from datetime import date
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+# 1. UBAH import Session menjadi AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
@@ -13,13 +15,15 @@ from app.repositories.portfolio_repository import PortfolioRepository
 from app.services.portfolio_service import PortfolioService
 from app.services.transaction_service import TransactionService
 
-router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+# 2. HAPUS prefix="/dashboard" di sini agar tidak dobel dengan yang ada di router.py utama
+router = APIRouter(tags=["Dashboard"])
 
 
 @router.get("/summary")
 async def get_dashboard_summary(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    # 3. UBAH tipe data menjadi AsyncSession
+    db: AsyncSession = Depends(get_db),
 ):
     portfolio_service = PortfolioService(db)
     transaction_service = TransactionService(db)
@@ -29,12 +33,13 @@ async def get_dashboard_summary(
     total_portfolio_value = sum(a.market_value or 0 for a in assets_with_market)
     total_unrealized_pnl = sum(a.unrealized_pnl or 0 for a in assets_with_market)
 
-    from datetime import date
-
     today = date.today()
-    monthly_summary = transaction_service.summary_by_month(current_user.id, today.year, today.month)
+    
+    # 4. WAJIB tambahkan 'await' di sini
+    monthly_summary = await transaction_service.summary_by_month(current_user.id, today.year, today.month)
 
-    goals = goal_repo.get_all_by_user(current_user.id, limit=5)
+    # 5. WAJIB tambahkan 'await' di sini
+    goals = await goal_repo.get_all_by_user(current_user.id, limit=5)
 
     return {
         "portfolio": {

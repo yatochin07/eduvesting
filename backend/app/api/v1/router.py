@@ -18,15 +18,19 @@ from app.api.v1.endpoints import (
 
 api_router = APIRouter()
 
-api_router.include_router(auth.router)
-api_router.include_router(users.router)
-api_router.include_router(dashboard.router)
-api_router.include_router(portfolio.router)
-api_router.include_router(transactions.router)
-api_router.include_router(goals.router)
-api_router.include_router(allocation.router)
-api_router.include_router(insights.router)
-api_router.include_router(education.router)
-api_router.include_router(market.router)
-api_router.include_router(calculator.router)
-api_router.include_router(settings_endpoint.router)
+# Tambahkan prefix dan tags untuk setiap router agar URL-nya sesuai modul
+api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
+api_router.include_router(users.router, prefix="/users", tags=["Users"])
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+api_router.include_router(portfolio.router, prefix="/portfolio", tags=["Portfolio"])
+api_router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
+api_router.include_router(goals.router, prefix="/goals", tags=["Goals"])
+api_router.include_router(allocation.router, prefix="/allocation", tags=["Allocation"])
+api_router.include_router(insights.router, prefix="/insights", tags=["Insights"])
+api_router.include_router(education.router, prefix="/education", tags=["Education"])
+
+# INI KUNCI UTAMANYA: Mengarahkan rute snapshot ke /market/snapshot
+api_router.include_router(market.router, prefix="/market", tags=["Market"]) 
+
+api_router.include_router(calculator.router, prefix="/calculator", tags=["Calculator"])
+api_router.include_router(settings_endpoint.router, prefix="/settings", tags=["Settings"])

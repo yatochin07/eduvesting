@@ -1,15 +1,10 @@
-"""
-MarketDataRouter: 'facade' yang memilih provider harga yang tepat
-berdasarkan asset_type, supaya service/router lain tidak perlu tahu
-detail masing-masing provider. Ini poin penting dari layered architecture:
-ganti/tambah provider di masa depan cukup ubah file ini.
-"""
 from app.schemas.market import QuoteResponse
 from app.services.market_data.coingecko_client import coingecko_client
+# Pastikan dua file client di bawah ini juga sudah Anda buat format class-nya
 from app.services.market_data.finnhub_client import finnhub_client
 from app.services.market_data.yfinance_client import yfinance_client
 
-# Mapping asset_type dari PortfolioAsset -> provider mana yang dipakai
+# Mapping asset_type -> provider
 ASSET_TYPE_PROVIDER_MAP = {
     "us_stock": "finnhub",
     "idx_stock": "yfinance",
@@ -17,7 +12,6 @@ ASSET_TYPE_PROVIDER_MAP = {
     "crypto": "coingecko",
     "gold": "coingecko",
 }
-
 
 class MarketDataRouter:
     async def get_quote(self, asset_type: str, symbol: str) -> QuoteResponse:
@@ -34,7 +28,8 @@ class MarketDataRouter:
         else:
             raise ValueError(f"Provider tidak diimplementasikan: {provider}")
 
+        # Return langsung berupa objek skema Pydantic
         return QuoteResponse(**data)
 
-
+# Instance tunggal yang akan diekspor dan dipakai oleh API Endpoint
 market_data_router = MarketDataRouter()

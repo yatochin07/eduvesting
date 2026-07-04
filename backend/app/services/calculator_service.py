@@ -1,18 +1,16 @@
 """
 CalculatorService: simulasi compound interest / kalkulator investasi masa depan.
-Murni komputasi matematis, tidak ada API realtime, tapi hasil bisa disimpan
-sebagai histori (calculator_history) sesuai preferensi user.
 """
 import uuid
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.calculator_repository import CalculatorRepository
 from app.schemas.calculator import CompoundInterestRequest, CompoundInterestResponse, YearlyProjection
 
 
 class CalculatorService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.repo = CalculatorRepository(db)
 
     @staticmethod
@@ -43,11 +41,11 @@ class CalculatorService:
             total_interest=round(balance - total_contributed, 2),
         )
 
-    def calculate(self, user_id: uuid.UUID, payload: CompoundInterestRequest) -> CompoundInterestResponse:
+    async def calculate(self, user_id: uuid.UUID, payload: CompoundInterestRequest) -> CompoundInterestResponse:
         result = self._simulate(payload)
 
         if payload.save_history:
-            self.repo.create(
+            await self.repo.create(
                 {
                     "user_id": user_id,
                     "calculator_type": "compound_interest",
@@ -60,5 +58,5 @@ class CalculatorService:
             )
         return result
 
-    def list_history(self, user_id: uuid.UUID):
-        return self.repo.get_all_by_user(user_id)
+    async def list_history(self, user_id: uuid.UUID):
+        return await self.repo.get_all_by_user(user_id)

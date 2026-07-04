@@ -18,17 +18,29 @@ app = FastAPI(
     redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
 )
 
-# Urutan penting: middleware yang didaftar terakhir = paling luar (dieksekusi pertama)
+# KUNCI PERBAIKAN CORS: Kita masukkan list origin localhost secara eksplisit
+# agar tidak bergantung penuh pada kevalidan file .env saat development lokal
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+if settings.CORS_ORIGINS:
+    origins.extend(settings.CORS_ORIGINS)
+elif settings.FRONTEND_URL:
+    origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS or [settings.FRONTEND_URL],
+    allow_origins=origins,  # Menggunakan list origins yang sudah pasti aman untuk lokal
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(ExceptionHandlingMiddleware)
 
+# Mendaftarkan router dengan prefix /api/v1
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 
